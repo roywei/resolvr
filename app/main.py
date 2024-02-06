@@ -11,6 +11,7 @@ from fastapi.encoders import jsonable_encoder
 import json
 from aider_helper import run_aider
 from utils.endpoint_utils import es_search
+from utils.oai_utils import generate_embedding, chat_completion
 
 app = FastAPI()
 
@@ -33,6 +34,86 @@ handled_incidents = []
 async def root():
     return "Samaritan is running"
 
+
+@app.get("/log_query")
+async def log_query(log_group: str, query: str, query_type: str):
+    if query_type == "semantic":
+        # Perform semantic search based on the query
+        # Implement your logic here
+        results = await perform_semantic_search(log_group, query)
+    elif query_type == "text":
+        # Perform text search based on the query
+        # Implement your logic here
+        results = await perform_text_search(log_group, query)
+    else:
+        return {"message": "Invalid query type"}
+
+    return results
+
+
+async def perform_semantic_search(log_group, query):
+    # query rewrite
+    instruction = """You are a helpful assistant that generate fake log lines to improve verctor search hit rate. \
+            Based on user question and the system (linux serve, spark, zookeeper, etc), generate logs lines that could match what user is looking for directly."""
+    user_input = f"""The original query is asking about {log_group} log streams. \
+            Generate 3 variations of log lines that could be potential user interest. Do NOT re-write the questions. Output fake log messages directly: """
+    new_query = chat_completion(
+        instruction=instruction, prompt=user_input + query)
+    print("new query is ", new_query)
+    query_embedding = generate_embedding(new_query, 128)
+    data = {
+        "knn": {
+            "field": "message-vector",
+            "query_vector": query_embedding,
+            "k": 10,
+            "num_candidates": 10
+        },
+        "fields": ["message"]
+    }
+    response = es_search(index=f"{log_group}-index", query=data)
+    all_results = response["hits"]["hits"]
+    source_array = [result["_source"] for result in all_results]
+    score_array = [result["_score"] for result in all_results]
+    source_array = [{k: v for k, v in source.items() if not k.endswith("-vector")}
+                    for source in source_array]
+    source_array = [
+        f"{k}: {v}" for source in source_array for k, v in source.items()]
+    combined = [source_array[i] + ' ' + source_array[i+1] for i in range(0, len(source_array), 2)]
+
+    source_string = "\n".join(
+        [f"Score: {score} {message}, " for score, message in zip(score_array, combined)])
+    print("processed ES returned wiht score ", source_string)
+    instruction = """You are a helpful assistant that help user come up with answer based on search results. Use stricly information provded in context, do NOT make things up, do NOT use results with low score."""
+    user_input = f"""Given the following search results from relevant log liens:
+            {source_string}
+            Based on the above information, answer the user's question:
+            {query}"""
+    answer = chat_completion(instruction=instruction, prompt=user_input)
+    return {"results": f"{answer}", "evidence": combined}
+
+
+async def perform_text_search(log_group, query):
+    # Implement your text search logic here
+    # Example: return results based on text search
+    query = {
+        "query": {
+            "query_string": {
+                "query": query
+            }
+        }
+    }
+    response = es_search(index=f"{log_group}-index", query=query)
+    print(response)
+    all_results = response["hits"]["hits"]
+    source_array = [result["_source"] for result in all_results]
+    source_array = [{k: v for k, v in source.items() if not k.endswith("-vector")}
+                    for source in source_array]
+    source_array = [
+        f"{k}: {v}" for source in source_array for k, v in source.items()]
+    combined = [source_array[i] + ' ' + source_array[i+1] for i in range(0, len(source_array), 2)]
+    return combined
+
+
 @app.get("/incident_report_all")
 async def incident_report_all():
     query = {
@@ -47,10 +128,10 @@ async def incident_report_all():
     source_array = [result["_source"] for result in all_results]
 
     # Remove fields ending with "-vector"
-    source_array = [{k: v for k, v in source.items() if not k.endswith("-vector")} for source in source_array]
+    source_array = [{k: v for k, v in source.items() if not k.endswith("-vector")}
+                    for source in source_array]
 
     return source_array
-    
 
 
 # incident endpoint

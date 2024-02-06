@@ -21,4 +21,3 @@ def test_es_search():
     print(f"ES search Error: {e}")
 
   assert id == "PM-20240202-002", "Retutnrd unexpected ID, ES vector seach failed!"
-

@@ -16,6 +16,21 @@ def generate_embedding(text, dimensions):
     return embedding
 
 
+def chat_completion(instruction, prompt):
+    try:
+        response = get_oai_client().chat.completions.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {"role": "system", "content": instruction},
+                {"role": "user", "content": prompt} 
+            ]
+        )
+        return response.choices[0].message.content
+    
+    except Exception as e:
+        print("Error calling Openai: ", e)
+
+    
 def get_oai_client():
     oai_client = OpenAI()
     return oai_client
