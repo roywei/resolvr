@@ -1,0 +1,28 @@
+{
+  "report_id": "IR-20240201-001",
+  "title": "Checkout Process Interruption",
+  "error_name": "Simulated Checkout Failure",
+  "severity": "SEV-2",
+  "status": "Resolved",
+  "description": "A simulated error caused interruption in the checkout process, affecting user transactions.",
+  "stack_trace": [
+    "ERROR:root:Checkout Error: Checkout process failure | Stack: http://127.0.0.1:8000/checkout | Info: {}",
+    "ERROR:root:Checkout Error: Payment gateway error | Stack: Payment gateway error | Info: {}"
+  ],
+  "solution": "Removed the artificial error generation in the processCheckout function to reinstate the standard checkout flow.",
+  "affected_services": ["Checkout", "Payment Gateway"],
+  "timestamp": "2024-02-01T09:30:00Z",
+  "updates": [
+    {
+      "update_time": "2024-02-01T10:00:00Z",
+      "update_description": "Identified the issue in the checkout process."
+    },
+    {
+      "update_time": "2024-02-01T12:00:00Z",
+      "update_description": "Implemented the fix and deployed to production."
+    }
+  ],
+  "tags": ["checkout", "fix deployed"],
+  "incident_duration": "2.5 hours",
+  "impact": "Temporary interruption of checkout services, affecting user transactions."
+}

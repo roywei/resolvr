@@ -1,0 +1,30 @@
+{
+  "report_id": "IR-20240203-003",
+  "title": "Checkout URL Error",
+  "error_name": "AxiosError: Network Error",
+  "severity": "SEV-1",
+  "status": "Resolved",
+  "description": "Users reported receiving errors when attempting to access the checkout URL.",
+  "stack_trace": [
+    "ERROR:root:Error Message: AxiosError    ",
+    "ERROR:root:Stack Trace: AxiosError: Network Error",
+    "at XMLHttpRequest.handleError (webpack-internal:///(app-client)/./node_modules/axios/lib/adapters/xhr.js:172:14)",
+    "ERROR:root:Additional Info: http://localhost:3000/api/4a41a355-030c-4c8d-ad8a-1d0b57c491b8/checskout"
+  ],
+  "solution": "Double check the url used to make the reqeust, correct any spelling error, fix the spelling of checkout in url. The file to modify: app/(routes)/cart/components/summary.tsx. area of focus: onCheckout",
+  "affected_services": ["Checkout"],
+  "timestamp": "2024-02-03T16:00:00Z",
+  "updates": [
+    {
+      "update_time": "2024-02-03T17:30:00Z",
+      "update_description": "Configuration error identified."
+    },
+    {
+      "update_time": "2024-02-03T18:45:00Z",
+      "update_description": "URL corrected, functionality confirmed by QA."
+    }
+  ],
+  "tags": ["checkout", "configuration"],
+  "incident_duration": "2.75 hours",
+  "impact": "A URL error led to checkout process disruptions."
+}

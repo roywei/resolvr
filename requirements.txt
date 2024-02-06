@@ -1,0 +1,7 @@
+fastapi[all]
+uvicorn
+openai
+aider-chat
+elasticsearch
+python-dotenv
+pinecone-client
