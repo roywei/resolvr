@@ -4,3 +4,4 @@ openai
 elasticsearch
 python-dotenv
 pinecone-client
+aider-chat
