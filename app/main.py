@@ -111,7 +111,8 @@ async def perform_text_search(log_group, query):
     source_array = [
         f"{k}: {v}" for source in source_array for k, v in source.items()]
     combined = [source_array[i] + ' ' + source_array[i+1] for i in range(0, len(source_array), 2)]
-    return combined
+    return {"results": "Key word search result", "evidence": combined}
+
 
 
 @app.get("/incident_report_all")

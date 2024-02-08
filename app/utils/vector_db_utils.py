@@ -71,13 +71,22 @@ def insert_folder(path, delete=False, update=False):
                 es_insert_report(es_client,"incidents-index", data, update=update)
 
 
-def convert_to_iso8601(timestamp_str):
+def convert_spark_to_iso8601(timestamp_str):
     # Assuming your timestamp is in the format 'yy/MM/dd HH:mm:ss'
     dt = datetime.strptime(timestamp_str, '%y/%m/%d %H:%M:%S')
     return dt.isoformat()
 
+def convert_linux_to_iso8601(timestamp_str):
+    # Assuming your timestamp is in the format 'yy/MM/dd HH:mm:ss'
+    try:
+        dt = datetime.strptime(timestamp_str, "%b %d %H:%M:%S")
+        return dt.isoformat()
+    except Exception as e:
+        print("Error converting datetime ", e)
+        return timestamp_str
 
-def insert_log_entry(es_client, line, log_type):
+
+def parse_logline(line, log_type):
     try:
         if log_type == "linux":
             regex = r"(\b[A-Za-z]{3} +\d{1,2} \d{2}:\d{2}:\d{2}\b)"
@@ -94,31 +103,67 @@ def insert_log_entry(es_client, line, log_type):
         else:
             print("Timestamp not found.")
         
-        # Generate embedding
-        embedding = generate_embedding(message, 128)  # Get the embedding for the message
-        
         #Prepare the document to be inserted
+        if log_type =='linux':
+            timestamp = convert_linux_to_iso8601(timestamp),
+        elif log_type == 'spark':
+            timestamp = convert_spark_to_iso8601(timestamp),
+        
         document = {
-             'timestamp': convert_to_iso8601(timestamp),
+             'timestamp': timestamp,
              'message': message,
-             'message-vector': embedding
+             'message-vector': []
         }
         
-        # Insert the document into Elasticsearch
-        es_client.index(index=f"{log_type}-index", document=document)
+        return document
     except Exception as e:
         print(f"Error inserting log entry: {e}")
 
+def gen_data(es_index, documents):
+    for doc in documents:
+        yield {
+            "_index": es_index,
+            "_source": doc
+        }
+
 
 def insert_logs(log_file_path, log_type):
+    output_file = log_file_path+".json"
+    if not os.path.exists(output_file):
+        documents = []
+        lines = []
+        with open(log_file_path, 'r') as file:
+            for line in file:
+                line = line.strip()
+                if line:  # Skip empty lines
+                    document = parse_logline(line, log_type)
+                    if document:
+                        lines.append(line)
+                        documents.append(document)
+        embeddings = generate_embedding(lines, 128)  # Get the embedding for the message
+        print(embeddings)
+        assert len(embeddings) == len(documents), f"embeddings len is {len(embeddings), {len(documents)}}"
+        for i, embedding in enumerate(embeddings):
+            documents[i]["message-vector"] = embedding
+
+        # Store documents as a local file
+
+        with open(output_file, 'w') as f:
+            json.dump(documents, f)
+    else:
+        with open(output_file, "r") as f:
+            documents = json.loads(f.read())
+        print("reading from file")
+        print(documents)
+    
     es_client = get_es_client()
-    with open(log_file_path, 'r') as file:
-        for line in file:
-            line = line.strip()
-            if line:  # Skip empty lines
-                insert_log_entry(es_client, line, log_type)
+    body = []
+    for item in documents:
+        body.append({ "index": { "_index": f"{log_type}-index"}})
+        body.append(item)
+    es_client.bulk(body=body)
 
 
 #insert_folder('sample_data/incidents/', delete=True)
-#insert_logs('sample_data/logs/Linux_2k.log', 'linux')
-insert_logs('sample_data/logs/Spark_2k.log', 'spark')
+insert_logs('sample_data/logs/Linux_2k.log', 'linux')
+#insert_logs('sample_data/logs/Spark_2k.log', 'spark')

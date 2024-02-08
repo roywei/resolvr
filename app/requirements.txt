@@ -1,7 +1,7 @@
 fastapi[all]
 uvicorn
-openai
+aider-chat
+openai==1.11.1
 elasticsearch
 python-dotenv
 pinecone-client
-aider-chat

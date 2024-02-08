@@ -12,8 +12,10 @@ def generate_embedding(text, dimensions):
     response = oai_client.embeddings.create(model="text-embedding-3-small",
                                             input=text, 
                                             dimensions=dimensions)
-    embedding = response.data[0].embedding
-    return embedding
+    if type(text) == str:
+        return response.data[0].embedding
+    else:
+        return [item.embedding for item in response.data]
 
 
 def chat_completion(instruction, prompt):
