@@ -15,15 +15,21 @@ from utils.oai_utils import generate_embedding, chat_completion
 
 app = FastAPI()
 
-# Set up CORS middleware options
-# app.add_middleware(
-#     CORSMiddleware,
-#     # Allows all origins from localhost:3001
-#     allow_origins=["http://localhost:3001", "http://localhost:3000"],
-#     allow_credentials=True,
-#     allow_methods=["*"],  # Allows all methods
-#     allow_headers=["*"],  # Allows all headers
-# )
+#Set up CORS middleware options
+allowed_origins = [
+    "http://localhost:3001",  # Local development
+    "http://localhost:3000",  # Local development
+    "https://resolvr-ai.vercel.app",  # Production frontend URL
+    # Add other domains as needed
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,  # Use the list of allowed origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 oncall_gent = OnCallAgent()
 handled_incidents = []
