@@ -16,14 +16,14 @@ from utils.oai_utils import generate_embedding, chat_completion
 app = FastAPI()
 
 # Set up CORS middleware options
-app.add_middleware(
-    CORSMiddleware,
-    # Allows all origins from localhost:3001
-    allow_origins=["http://localhost:3001", "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
-)
+# app.add_middleware(
+#     CORSMiddleware,
+#     # Allows all origins from localhost:3001
+#     allow_origins=["http://localhost:3001", "http://localhost:3000"],
+#     allow_credentials=True,
+#     allow_methods=["*"],  # Allows all methods
+#     allow_headers=["*"],  # Allows all headers
+# )
 
 oncall_gent = OnCallAgent()
 handled_incidents = []

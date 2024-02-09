@@ -55,6 +55,11 @@ def pc_insert_report(pc_idnex, doc):
         namespace="stack_trace_embedding"
     )
 
+def insert_incident(file):
+    es_client = get_es_client()
+    with open(file, 'r') as f:
+        data = json.load(f)
+        es_insert_report(es_client,"incidents-index", data, update=False)
 
 def insert_folder(path, delete=False, update=False):
     es_client = get_es_client()
@@ -62,7 +67,8 @@ def insert_folder(path, delete=False, update=False):
         "match_all" : {}
     }
     }
-    es_client.delete_by_query(index='incidents-index', body=query)
+    if delete:
+        es_client.delete_by_query(index='incidents-index', body=query)
     for filename in os.listdir(path):
         if filename.endswith('.json'):
             file_path = os.path.join(path, filename)
@@ -164,6 +170,7 @@ def insert_logs(log_file_path, log_type):
     es_client.bulk(body=body)
 
 
-#insert_folder('sample_data/incidents/', delete=True)
-insert_logs('sample_data/logs/Linux_2k.log', 'linux')
+insert_incident('sample_data/incidents/IR-20240208-001.json')
+#insert_folder('sample_data/incidents/', delete=False)
+#insert_logs('sample_data/logs/Linux_2k.log', 'linux')
 #insert_logs('sample_data/logs/Spark_2k.log', 'spark')
