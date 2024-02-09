@@ -9,10 +9,12 @@ from datetime import datetime
 from oncall_agent import OnCallAgent
 from fastapi.encoders import jsonable_encoder
 import json
-from aider_helper import run_aider
+from aider_helper import run_aider, clone_repo_and_run_aider
 from utils.endpoint_utils import es_search
 from utils.oai_utils import generate_embedding, chat_completion
 import json
+from dotenv import find_dotenv, dotenv_values
+config = dotenv_values(find_dotenv())
 
 app = FastAPI()
 
@@ -172,14 +174,42 @@ async def rca(request: Request, report_id:str, stack_trace: str):
 
     json_schema_string = json.dumps(json_schema)
 
-    instruction = f"""You are a helpful assistant that helo with oncall root cause analysis, you will be given a stack trace and an error, followed by \
-        relevant past incident report and solutions. Your goal is to ouput possible root cause and possible solution. Return only Json data with schema: {json_schema_string}"""
+    instruction = f"""You are a helpful assistant that help with oncall root cause analysis, you will be given a stack trace and an error, followed by \
+        relevant past incident report and solutions. Your goal is to ouput possible root cause and possible solution. Make sure to return file names to fix and area of focus if possible. \
+        Do not remove brackets in file path. Return only Json data with schema: {json_schema_string}"""
     user_input = f"""The stack trace is {stack_trace} \
             and the relevant incident reports is as following: {past_report_string} \
             return only json with schema {json_schema_string} """
     solution = chat_completion(
         instruction=instruction, prompt=user_input, json_mode=True)
     return json.loads(solution)
+
+
+@app.get("/fix")
+async def fix_issue(root_cause: str, solution: str):
+    json_schema = {
+        "instruction": "instruction on how to fix the problem",
+        "file_path": "file path",
+        "area_to_focus": "area to focus in file"
+    }
+
+    json_schema_string = json.dumps(json_schema)
+    instruction = f"""You are a helpful assistant that help with fixing bug in code. Given the identified root cause and solution,  \
+        your goal is to ouput instructions to fix the right file at the right place.Do not remove brackets in file path. Return only Json data with schema: {json_schema_string}"""
+    user_input = f"""Based on following root cause and solution  \
+            return the instructions only json with schema {json_schema_string} \
+            root cause: {root_cause} \
+            solution: {solution} """
+    instruction = chat_completion(
+        instruction=instruction, prompt=user_input, json_mode=True)
+    instruction_json = json.loads(instruction)
+    print(instruction_json)
+    print("token is ", config['GITHUB_TOKEN'])
+    pr_url = clone_repo_and_run_aider(repo_url=f"https://{config['GITHUB_TOKEN']}@github.com/roywei/next13-ecommerce-store.git", 
+                             instruction=instruction_json["instruction"],
+                             file_to_change=instruction_json["file_path"].replace("[","").replace("]",""),
+                             area_to_focus=instruction_json["area_to_focus"])
+    return pr_url
 
 
 # incident endpoint
