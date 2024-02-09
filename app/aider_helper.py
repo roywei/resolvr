@@ -29,6 +29,8 @@ def clone_repo_and_run_aider(repo_url, file_to_change, instruction, area_to_focu
 
         # Checkout a new branch with the UUID as the branch name
         subprocess.run(['git', 'checkout', '-b', branch_name], check=True)
+        subprocess.run(['git', 'config', '--global', "user.name", "Lai Wei"], check=True)
+        subprocess.run(['git', 'config', '--global', "user.email", "royweilai@gmail.com"], check=True)
         # Call the run_aider function
         run_aider(file_to_change, instruction, area_to_focus, auto_commit=True)
         # Push the changes using the token
