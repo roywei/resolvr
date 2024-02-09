@@ -12,6 +12,7 @@ import json
 from aider_helper import run_aider
 from utils.endpoint_utils import es_search
 from utils.oai_utils import generate_embedding, chat_completion
+import json
 
 app = FastAPI()
 
@@ -139,6 +140,46 @@ async def incident_report_all():
                     for source in source_array]
 
     return source_array
+
+
+@app.get("/rca")
+async def rca(request: Request, report_id:str, stack_trace: str):
+    # report_id = incident_data.get("report_id")
+    # stack_trace = incident_data.get("stack_trace")
+    print("starting RCA on ", report_id)
+    stack_trace_embedding = generate_embedding(stack_trace, 512)
+    data = {
+        "knn": {
+            "field": "stacktrace-vector",
+            "query_vector": stack_trace_embedding,
+            "k": 1,
+            "num_candidates": 1
+        },
+        "fields": ["message"]
+    }
+    response = es_search(index="incidents-index", query=data)
+    all_results = response["hits"]["hits"]
+    source_array = [result["_source"] for result in all_results]
+    #score_array = [result["_score"] for result in all_results]
+    source_array = [{k: v for k, v in source.items() if not k.endswith("-vector")}
+                    for source in source_array]
+    past_report_string = str(source_array[0])
+    json_schema = {
+        "root_cause": "example root cause",
+        "solution": "example solution",
+        "relevant_report_id": "example report id"
+    }
+
+    json_schema_string = json.dumps(json_schema)
+
+    instruction = f"""You are a helpful assistant that helo with oncall root cause analysis, you will be given a stack trace and an error, followed by \
+        relevant past incident report and solutions. Your goal is to ouput possible root cause and possible solution. Return only Json data with schema: {json_schema_string}"""
+    user_input = f"""The stack trace is {stack_trace} \
+            and the relevant incident reports is as following: {past_report_string} \
+            return only json with schema {json_schema_string} """
+    solution = chat_completion(
+        instruction=instruction, prompt=user_input, json_mode=True)
+    return json.loads(solution)
 
 
 # incident endpoint

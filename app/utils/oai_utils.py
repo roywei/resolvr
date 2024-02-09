@@ -18,15 +18,25 @@ def generate_embedding(text, dimensions):
         return [item.embedding for item in response.data]
 
 
-def chat_completion(instruction, prompt):
+def chat_completion(instruction, prompt, json_mode=False):
     try:
-        response = get_oai_client().chat.completions.create(
-            model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": instruction},
-                {"role": "user", "content": prompt} 
-            ]
-        )
+        if json_mode:
+            response = get_oai_client().chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=[
+                    {"role": "system", "content": instruction},
+                    {"role": "user", "content": prompt} 
+                ],
+                response_format={ "type": "json_object" }
+            )
+        else:
+            response = get_oai_client().chat.completions.create(
+                model="gpt-4-turbo-preview",
+                messages=[
+                    {"role": "system", "content": instruction},
+                    {"role": "user", "content": prompt} 
+                ]
+            )
         return response.choices[0].message.content
     
     except Exception as e:
