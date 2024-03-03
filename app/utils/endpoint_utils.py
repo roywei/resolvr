@@ -10,8 +10,8 @@ config = dotenv_values(find_dotenv())
 
 def get_es_client():
     es_client = Elasticsearch(
-        config['ES_ENDPOINT'],  # Elasticsearch endpoint
-        api_key=config['ES_API_KEY'],  # API key ID and secret
+        config["ES_ENDPOINT"],  # Elasticsearch endpoint
+        api_key=config["ES_API_KEY"],  # API key ID and secret
     )
     print(es_client.info())
     return es_client
@@ -20,8 +20,8 @@ def get_es_client():
 def es_search(index, query):
     url = f"{config['ES_ENDPOINT']}/{index}/_search"
     headers = {
-        'Authorization': f"ApiKey {config['ES_API_KEY']}",
-        'Content-Type': 'application/json'
+        "Authorization": f"ApiKey {config['ES_API_KEY']}",
+        "Content-Type": "application/json",
     }
     print("url is", url)
     print("headre is ", headers)

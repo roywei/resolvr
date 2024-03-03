@@ -4,3 +4,6 @@ elasticsearch
 python-dotenv
 pinecone-client
 aider-chat
+aiohttp
+slack_bolt
+openai

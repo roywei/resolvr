@@ -2,6 +2,7 @@ from openai import OpenAI
 import time
 from dotenv import find_dotenv, dotenv_values
 import os
+
 config = dotenv_values(find_dotenv())
 
 
@@ -16,9 +17,10 @@ If you are not certain about the error, reply sorry, I cant find any existing so
 }
 """
 
-class OnCallAgent():
+
+class OnCallAgent:
     def __init__(self):
-        self.client = OpenAI(api_key=config['OPENAI_API_KEY'])
+        self.client = OpenAI(api_key=config["OPENAI_API_KEY"])
         if not config["ASSISTANT_ID"]:
             directory = "../incident_reports"
             file_ids = []
@@ -27,26 +29,25 @@ class OnCallAgent():
                 if os.path.isfile(os.path.join(directory, filename)):
                     file = self.client.files.create(
                         file=open(os.path.join(directory, filename), "rb"),
-                        purpose='assistants'
+                        purpose="assistants",
                     )
                     file_ids.append(file.id)
-            
+
             assistant = self.client.beta.assistants.create(
                 name="OncallAgent",
                 instructions=PROMPT,
                 tools=[{"type": "retrieval"}],
                 model="gpt-4-turbo-preview",
-                file_ids=file_ids
+                file_ids=file_ids,
             )
             print(assistant)
             id = assistant.id
-            with open('../.env', 'a') as env_file:
+            with open("../.env", "a") as env_file:
                 env_file.write(f"ASSISTANT_ID={id}\n")
             self.assistant_id = id
         else:
             self.assistant_id = config["ASSISTANT_ID"]
-            print('using existing id: ', self.assistant_id)
-
+            print("using existing id: ", self.assistant_id)
 
     def research_incident(self, error_message, stack_trace, additional_info):
         print(f"Agent id {self.assistant_id} is researching on the incident...")
@@ -54,24 +55,21 @@ class OnCallAgent():
         message = self.client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=f"Help me fix this error, remember your instructions and return in json format if solution found: {error_message}\n : {stack_trace}\n: {additional_info}"
+            content=f"Help me fix this error, remember your instructions and return in json format if solution found: {error_message}\n : {stack_trace}\n: {additional_info}",
         )
         run = self.client.beta.threads.runs.create(
             thread_id=thread.id,
             assistant_id=self.assistant_id,
-            tools=[{"type": "retrieval"}]
+            tools=[{"type": "retrieval"}],
         )
-        while run.status != 'completed':
+        while run.status != "completed":
             run = self.client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
+                thread_id=thread.id, run_id=run.id
             )
             print(run.status)
-            if run.status == 'failed':
-                print('run failed!')
+            if run.status == "failed":
+                print("run failed!")
                 break
             time.sleep(5)
-        messages = self.client.beta.threads.messages.list(
-            thread_id=thread.id
-        )
+        messages = self.client.beta.threads.messages.list(thread_id=thread.id)
         return messages.data[0]
